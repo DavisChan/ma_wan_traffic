@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>馬灣交通時刻</title>
+
+  <!-- PWA & Mobile Web App Meta -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="馬灣交通">
+  <meta name="theme-color" content="#020617">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .urgent-flash {
+      animation: pulse-subtle 1.2s infinite ease-in-out;
+    }
+    /* Hide scrollbars for clean UI */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen p-3 sm:p-6 flex flex-col items-center select-none font-sans">
+
+  <div class="w-full max-w-md space-y-3 pb-10">
+    
+    <!-- 1. Interactive Simulator Console -->
+    <div class="bg-slate-900/95 border border-indigo-500/30 rounded-2xl p-3.5 shadow-lg backdrop-blur">
+      <div class="flex items-center justify-between cursor-pointer" onclick="toggleSimPanel()">
+        <div class="flex items-center space-x-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          <span class="text-xs font-bold tracking-wider uppercase text-indigo-400">測試與模擬控制台</span>
+        </div>
+        <span id="sim-toggle-icon" class="text-xs text-slate-400">▼ 展開設定</span>
+      </div>
+
+      <div id="sim-panel" class="hidden mt-3 pt-3 border-t border-slate-800 space-y-3 text-xs">
+        <!-- Time Slider -->
+        <div>
+          <div class="flex justify-between text-slate-400 mb-1">
+            <span>自訂時間: <b id="sim-time-val" class="text-indigo-300 font-mono">跟隨系統</b></span>
+            <button onclick="resetToRealTime()" class="text-indigo-400 underline font-medium">重設為現在</button>
+          </div>
+          <input type="range" id="sim-time-slider" min="0" max="1439" step="1" 
+                 class="w-full accent-indigo-500 bg-slate-800 rounded-lg cursor-pointer">
+        </div>
+
+        <!-- Location Preset -->
+        <div>
+          <span class="text-slate-400 block mb-1.5">模擬位置 (自動切換出/入馬灣)：</span>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button onclick="setSimLocation('ma_wan')" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded text-slate-200 border border-slate-700 transition">📍 馬灣島內</button>
+            <button onclick="setSimLocation('city')" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded text-slate-200 border border-slate-700 transition">📍 市區 (青衣/葵芳)</button>
+            <button onclick="setSimLocation('real')" class="py-1.5 px-2 bg-indigo-950 hover:bg-indigo-900 rounded text-indigo-300 border border-indigo-700 transition">📡 真實 GPS</button>
+          </div>
+        </div>
+
+        <!-- Schedule Mode -->
+        <div>
+          <span class="text-slate-400 block mb-1.5">時間表類型：</span>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button onclick="setDayType('auto')" id="btn-day-auto" class="py-1 px-2 rounded bg-indigo-600 text-white font-medium">自動偵測</button>
+            <button onclick="setDayType('weekday')" id="btn-day-weekday" class="py-1 px-2 rounded bg-slate-800 text-slate-300">強制平日</button>
+            <button onclick="setDayType('holiday')" id="btn-day-holiday" class="py-1 px-2 rounded bg-slate-800 text-slate-300">強制假日</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Header & Live Clock -->
+    <header class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-lg font-bold text-white tracking-tight">馬灣實時下班車</h1>
+          <div class="flex items-center space-x-2 mt-0.5">
+            <span id="current-clock-display" class="font-mono text-xs text-indigo-400 font-semibold">--:--:--</span>
+            <span class="text-slate-600">•</span>
+            <span id="day-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">平日</span>
+          </div>
+        </div>
+        <div class="text-right">
+          <span id="location-badge" class="inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
+            定位中...
+          </span>
+        </div>
+      </div>
+
+      <!-- Direction Toggle -->
+      <div class="mt-4 grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800/80">
+        <button id="tab-from-mawan" onclick="setDirection('from_ma_wan')" 
+                class="py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 bg-blue-600 text-white shadow">
+          <span>🚢 出馬灣</span>
+          <span class="text-[10px] opacity-75 font-normal">(往市區)</span>
+        </button>
+        <button id="tab-to-mawan" onclick="setDirection('to_ma_wan')" 
+                class="py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 text-slate-400 hover:text-white">
+          <span>🏝️ 入馬灣</span>
+          <span class="text-[10px] opacity-75 font-normal">(往珀麗灣)</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 3. Route Filters -->
+    <div class="flex space-x-2 overflow-x-auto pb-1 text-xs no-scrollbar">
+      <button onclick="filterType('all')" id="filter-all" class="px-3 py-1 rounded-full bg-slate-700 text-white font-medium border border-slate-600 shrink-0">全部路線</button>
+      <button onclick="filterType('bus')" id="filter-bus" class="px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800 shrink-0">僅看巴士 (青衣/荃灣/葵芳)</button>
+      <button onclick="filterType('ferry')" id="filter-ferry" class="px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800 shrink-0">僅看渡輪 (中環)</button>
+    </div>
+
+    <!-- 4. Schedule Cards -->
+    <main id="routes-container" class="space-y-3">
+      <!-- Injected via JavaScript -->
+    </main>
+
+  </div>
+
+  <!-- 5. Full Timetable Modal -->
+  <div id="timetable-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[80vh] flex flex-col shadow-2xl">
+      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div>
+          <h3 id="modal-title" class="font-bold text-base text-white">路線時刻表</h3>
+          <p id="modal-subtitle" class="text-xs text-slate-400 mt-0.5"></p>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div id="modal-grid" class="p-4 overflow-y-auto grid grid-cols-4 gap-2 text-center text-sm font-mono">
+        <!-- Timetable entries -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // Timetable Database
+    // ==========================================
+    const TIMETABLES = {
+      tsing_yi: {
+        id: "tsing_yi",
+        name: "青衣站 (NR330)",
+        type: "bus",
+        limit: 3,
+        weekday: {
+          to_ma_wan: ["06:00","06:20","06:40","07:00","07:15","07:30","07:45","08:00","08:15","08:30","08:45","09:00","09:20","09:40","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","17:30","18:00","18:15","18:30","18:45","19:00","19:20","19:40","20:00","21:00","22:00","23:00","23:30","23:59"],
+          from_ma_wan: ["05:40","06:00","06:15","06:30","06:45","07:00","07:15","07:30","07:45","08:00","08:15","08:30","09:00","09:30","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","17:30","18:00","18:15","18:30","18:45","19:00","19:30","20:00","21:00","22:00","23:00","23:45"]
+        },
+        holiday: {
+          to_ma_wan: ["06:00","06:30","07:00","07:20","07:40","08:00","08:20","08:40","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","18:30","19:00","20:00","21:00","22:00","23:00","23:59"],
+          from_ma_wan: ["05:40","06:00","06:30","07:00","07:20","07:40","08:00","08:30","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","18:30","19:00","20:00","21:00","22:00","23:30"]
+        }
+      },
+      tsuen_wan: {
+        id: "tsuen_wan",
+        name: "荃灣站 / 荃灣西 (NR331/S)",
+        type: "bus",
+        limit: 2,
+        weekday: {
+          to_ma_wan: ["06:00","06:30","07:00","07:20","07:40","08:00","08:20","08:40","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:20","18:40","19:00","20:00","21:30","23:00","23:30"],
+          from_ma_wan: ["06:00","06:25","06:50","07:10","07:30","07:50","08:10","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:20","18:40","19:00","20:00","21:30","23:00"]
+        },
+        holiday: {
+          to_ma_wan: ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:30","19:00","20:00","21:30","23:30"],
+          from_ma_wan: ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:30","19:00","20:00","21:30","23:00"]
+        }
+      },
+      kwai_fong: {
+        id: "kwai_fong",
+        name: "葵芳新都會 (NR332)",
+        type: "bus",
+        limit: 2,
+        weekday: {
+          to_ma_wan: ["06:00","06:20","06:40","07:00","07:20","07:40","08:00","08:20","08:40","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:20","18:40","19:00","20:00","21:00","22:00","23:00","23:40"],
+          from_ma_wan: ["06:00","06:20","06:40","07:00","07:20","07:40","08:00","08:20","08:40","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:20","18:40","19:00","20:00","21:00","22:00","23:00","23:20"]
+        },
+        holiday: {
+          to_ma_wan: ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:30","19:00","20:00","21:00","22:00","23:00","23:40"],
+          from_ma_wan: ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:30","19:00","20:00","21:00","22:00","23:00","23:20"]
+        }
+      },
+      ferry_central: {
+        id: "ferry_central",
+        name: "中環 2 號碼頭 渡輪",
+        type: "ferry",
+        limit: 1,
+        weekday: {
+          to_ma_wan: ["07:00","08:00","09:00","10:00","12:00","14:00","16:00","17:30","18:15","19:00","20:00","21:00","22:00","23:30"],
+          from_ma_wan: ["06:30","07:30","08:30","09:30","11:30","13:30","15:30","17:00","17:45","18:30","19:30","20:30","21:30","23:00"]
+        },
+        holiday: {
+          to_ma_wan: ["07:30","09:00","10:30","12:00","13:30","15:00","16:30","18:00","19:30","21:00","22:30","23:30"],
+          from_ma_wan: ["07:00","08:30","10:00","11:30","13:00","14:30","16:00","17:30","19:00","20:30","22:00","23:00"]
+        }
+      }
+    };
+
+    // ==========================================
+    // State Management
+    // ==========================================
+    let state = {
+      direction: "from_ma_wan",
+      simulatedMinutes: null,
+      dayTypeMode: "auto",
+      filter: "all",
+      isSimPanelOpen: false
+    };
+
+    const MA_WAN_LAT = 22.3530;
+    const MA_WAN_LNG = 114.0605;
+
+    function getNowDate() {
+      const now = new Date();
+      if (state.simulatedMinutes !== null) {
+        now.setHours(Math.floor(state.simulatedMinutes / 60));
+        now.setMinutes(state.simulatedMinutes % 60);
+      }
+      return now;
+    }
+
+    function getCurrentDayType() {
+      if (state.dayTypeMode !== "auto") return state.dayTypeMode;
+      const d = getNowDate();
+      return (d.getDay() === 0) ? "holiday" : "weekday";
+    }
+
+    function timeStrToSeconds(str) {
+      const [h, m] = str.split(":").map(Number);
+      return h * 3600 + m * 60;
+    }
+
+    function setDirection(dir) {
+      state.direction = dir;
+      const isFrom = dir === "from_ma_wan";
+      
+      document.getElementById("tab-from-mawan").className = isFrom 
+        ? "py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 bg-blue-600 text-white shadow"
+        : "py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 text-slate-400 hover:text-white";
+
+      document.getElementById("tab-to-mawan").className = !isFrom 
+        ? "py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 bg-blue-600 text-white shadow"
+        : "py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 text-slate-400 hover:text-white";
+
+      render();
+    }
+
+    function toggleSimPanel() {
+      state.isSimPanelOpen = !state.isSimPanelOpen;
+      document.getElementById("sim-panel").classList.toggle("hidden", !state.isSimPanelOpen);
+      document.getElementById("sim-toggle-icon").textContent = state.isSimPanelOpen ? "▲ 收起設定" : "▼ 展開設定";
+    }
+
+    function setSimLocation(type) {
+      const badge = document.getElementById("location-badge");
+      if (type === "ma_wan") {
+        setDirection("from_ma_wan");
+        badge.textContent = "📍 身處馬灣島內";
+        badge.className = "inline-block text-[11px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-emerald-300";
+      } else if (type === "city") {
+        setDirection("to_ma_wan");
+        badge.textContent = "📍 身處市區 (青衣/葵芳)";
+        badge.className = "inline-block text-[11px] px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-sky-300";
+      } else {
+        initGPS();
+      }
+    }
+
+    function setDayType(mode) {
+      state.dayTypeMode = mode;
+      ["auto", "weekday", "holiday"].forEach(m => {
+        const btn = document.getElementById(`btn-day-${m}`);
+        if (m === mode) {
+          btn.className = "py-1 px-2 rounded bg-indigo-600 text-white font-medium";
+        } else {
+          btn.className = "py-1 px-2 rounded bg-slate-800 text-slate-300";
+        }
+      });
+      render();
+    }
+
+    function filterType(type) {
+      state.filter = type;
+      ["all", "bus", "ferry"].forEach(t => {
+        const btn = document.getElementById(`filter-${t}`);
+        if (t === type) {
+          btn.className = "px-3 py-1 rounded-full bg-slate-700 text-white font-medium border border-slate-600 shrink-0";
+        } else {
+          btn.className = "px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800 shrink-0";
+        }
+      });
+      render();
+    }
+
+    function resetToRealTime() {
+      state.simulatedMinutes = null;
+      document.getElementById("sim-time-val").textContent = "跟隨系統";
+      render();
+    }
+
+    function getUpcomingTimes(scheduleList, limit) {
+      const now = getNowDate();
+      const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+      const upcoming = [];
+      for (const timeStr of scheduleList) {
+        const busSec = timeStrToSeconds(timeStr);
+        if (busSec >= currentSeconds) {
+          upcoming.push({
+            time: timeStr,
+            remainingSec: busSec - currentSeconds
+          });
+          if (upcoming.length === limit) break;
+        }
+      }
+      return upcoming;
+    }
+
+    function formatRemaining(seconds) {
+      if (seconds <= 30) return `<span class="urgent-flash text-rose-400 font-extrabold">即將開出</span>`;
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      
+      let color = "text-slate-300";
+      if (mins < 5) color = "text-rose-400 font-bold";
+      else if (mins < 10) color = "text-amber-400 font-semibold";
+
+      return `<span class="${color}">${mins}分 <span class="text-[11px] opacity-75">${String(secs).padStart(2,'0')}秒</span></span>`;
+    }
+
+    function render() {
+      const now = getNowDate();
+      const dayType = getCurrentDayType();
+
+      document.getElementById("current-clock-display").textContent = 
+        `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+      
+      document.getElementById("day-badge").textContent = dayType === "holiday" ? "星期日／假期" : "平日時間表";
+
+      const container = document.getElementById("routes-container");
+      container.innerHTML = "";
+
+      Object.values(TIMETABLES).forEach(route => {
+        if (state.filter !== "all" && route.type !== state.filter) return;
+
+        const scheduleList = route[dayType][state.direction] || [];
+        const upcoming = getUpcomingTimes(scheduleList, route.limit);
+
+        const card = document.createElement("div");
+        card.className = "bg-slate-900 border border-slate-800 hover:border-slate-700 transition rounded-2xl p-4 shadow-sm cursor-pointer";
+        card.onclick = () => openModal(route, scheduleList);
+
+        let rowsHtml = "";
+        if (upcoming.length === 0) {
+          rowsHtml = `<div class="p-3 bg-slate-950/60 rounded-xl text-center text-xs text-slate-500 font-medium">本日尾班車已過</div>`;
+        } else {
+          rowsHtml = upcoming.map((u, idx) => `
+            <div class="flex items-center justify-between p-2.5 rounded-xl ${idx === 0 ? 'bg-slate-800/90 border border-slate-700/60' : 'bg-slate-950/40'}">
+              <div class="flex items-center space-x-2">
+                <span class="text-[10px] px-1.5 py-0.5 rounded ${idx === 0 ? 'bg-blue-600 text-white font-bold' : 'bg-slate-800 text-slate-400'}">
+                  ${idx === 0 ? '下班' : `+${idx+1}班`}
+                </span>
+                <span class="text-base font-mono font-bold text-white">${u.time}</span>
+              </div>
+              <div class="text-xs font-mono">${formatRemaining(u.remainingSec)}</div>
+            </div>
+          `).join("");
+        }
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-2.5">
+            <div class="flex items-center space-x-1.5">
+              <span class="text-sm">${route.type === 'ferry' ? '⛴️' : '🚌'}</span>
+              <h2 class="font-bold text-sm text-slate-100">${route.name}</h2>
+            </div>
+            <span class="text-[10px] text-slate-400 hover:text-indigo-400 flex items-center">
+              全日表 ➔
+            </span>
+          </div>
+          <div class="space-y-1.5">${rowsHtml}</div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    function openModal(route, fullList) {
+      const modal = document.getElementById("timetable-modal");
+      document.getElementById("modal-title").textContent = route.name;
+      document.getElementById("modal-subtitle").textContent = 
+        `${state.direction === 'from_ma_wan' ? '馬灣出發' : '市區出發'} • ${getCurrentDayType() === 'holiday' ? '假日' : '平日'}全日班次`;
+
+      const now = getNowDate();
+      const currentSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+      const grid = document.getElementById("modal-grid");
+      grid.innerHTML = fullList.map(t => {
+        const isPast = timeStrToSeconds(t) < currentSec;
+        return `
+          <div class="py-2 rounded-lg text-xs font-medium border ${isPast ? 'bg-slate-950 text-slate-600 border-slate-900' : 'bg-slate-800 text-indigo-200 border-slate-700 font-bold'}">
+            ${t}
+          </div>
+        `;
+      }).join("");
+
+      modal.classList.remove("hidden");
+    }
+
+    function closeModal() {
+      document.getElementById("timetable-modal").classList.add("hidden");
+    }
+
+    function initGPS() {
+      const badge = document.getElementById("location-badge");
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const dLat = (pos.coords.latitude - MA_WAN_LAT) * 111;
+            const dLon = (pos.coords.longitude - MA_WAN_LNG) * 102;
+            const distKm = Math.sqrt(dLat * dLat + dLon * dLon);
+
+            if (distKm <= 1.8) {
+              setDirection("from_ma_wan");
+              badge.textContent = "📍 GPS: 馬灣島內";
+              badge.className = "inline-block text-[11px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-emerald-300";
+            } else {
+              setDirection("to_ma_wan");
+              badge.textContent = `📍 GPS: 市區 (${distKm.toFixed(1)}km)`;
+              badge.className = "inline-block text-[11px] px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-sky-300";
+            }
+          },
+          () => {
+            badge.textContent = "📍 預設: 出馬灣";
+          },
+          { timeout: 4000 }
+        );
+      }
+    }
+
+    document.getElementById("sim-time-slider").addEventListener("input", (e) => {
+      state.simulatedMinutes = parseInt(e.target.value, 10);
+      const h = String(Math.floor(state.simulatedMinutes / 60)).padStart(2, '0');
+      const m = String(state.simulatedMinutes % 60).padStart(2, '0');
+      document.getElementById("sim-time-val").textContent = `${h}:${m}`;
+      render();
+    });
+
+    setInterval(render, 1000);
+    initGPS();
+    render();
+  </script>
+</body>
+</html>
