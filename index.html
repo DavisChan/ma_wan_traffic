@@ -2,9 +2,19 @@
 <html lang="zh-HK">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#E5DFD4">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="馬灣・珀麗灣巴士與渡輪下班車時刻">
+
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
+<meta name="theme-color" content="#E5DFD4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#191713" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="馬灣時刻">
 <title>馬灣時刻 Ma Wan Departures</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -73,7 +83,9 @@
   .han{font-family:"Noto Serif HK","Songti TC","Songti SC",serif;}
   .lat{font-family:"Zen Kaku Gothic New",-apple-system,BlinkMacSystemFont,sans-serif;}
 
-  .wrap{max-width:34rem;margin:0 auto;padding:2.75rem 1.5rem 4rem;}
+  .wrap{max-width:34rem;margin:0 auto;
+    padding:calc(2.75rem + env(safe-area-inset-top)) calc(1.5rem + env(safe-area-inset-right))
+            calc(4rem + env(safe-area-inset-bottom)) calc(1.5rem + env(safe-area-inset-left));}
 
   /* ---------- masthead ---------- */
   .mast{display:flex;flex-direction:column;gap:.55rem;}
@@ -808,6 +820,17 @@ setFilter(state.filter);
 setInterval(render, 1000);
 render();
 autoLocate();
+</script>
+
+<script>
+/* Service worker: enables install-to-home-screen and offline use.
+   Only runs on a secure origin, and never blocks the page if it fails. */
+if ('serviceWorker' in navigator &&
+    (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 
 </body>
