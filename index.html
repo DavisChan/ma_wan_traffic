@@ -1,455 +1,814 @@
 <!DOCTYPE html>
 <html lang="zh-HK">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>馬灣交通時刻</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#E5DFD4">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="馬灣時刻">
+<title>馬灣時刻 Ma Wan Departures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+HK:wght@200;300;500;700&family=Zen+Kaku+Gothic+New:wght@300;400;500&display=swap">
 
-  <!-- PWA & Mobile Web App Meta -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="馬灣交通">
-  <meta name="theme-color" content="#020617">
+<style>
+  :root{
+    --paper:#E5DFD4;
+    --surface:#EFEAE1;
+    --sunk:#DBD4C7;
+    --ink:#242019;
+    --ink2:#4C443A;
+    --ink3:#8C8273;
+    --rule:#CBC2B2;
+    --rule-soft:#D8D0C1;
+    --bengara:#9E4527;
+    --ochre:#9E7A33;
+    --moss:#5C6A4C;
+    --ai:#3C5566;
+    --focus:#9E4527;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#191713;
+      --surface:#221F19;
+      --sunk:#13110E;
+      --ink:#EAE3D6;
+      --ink2:#BCB3A2;
+      --ink3:#867D6E;
+      --rule:#39332B;
+      --rule-soft:#2B2721;
+      --bengara:#CC6E4C;
+      --ochre:#C6A25F;
+      --moss:#8D9C79;
+      --ai:#7FA0B3;
+      --focus:#CC6E4C;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#191713;
+    --surface:#221F19;
+    --sunk:#13110E;
+    --ink:#EAE3D6;
+    --ink2:#BCB3A2;
+    --ink3:#867D6E;
+    --rule:#39332B;
+    --rule-soft:#2B2721;
+    --bengara:#CC6E4C;
+    --ochre:#C6A25F;
+    --moss:#8D9C79;
+    --ai:#7FA0B3;
+    --focus:#CC6E4C;
+  }
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @keyframes pulse-subtle {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-    .urgent-flash {
-      animation: pulse-subtle 1.2s infinite ease-in-out;
-    }
-    /* Hide scrollbars for clean UI */
-    .no-scrollbar::-webkit-scrollbar { display: none; }
-    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-  </style>
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Zen Kaku Gothic New","Noto Serif HK",-apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+    font-weight:300;
+    -webkit-font-smoothing:antialiased;
+    font-feature-settings:"tnum" 1;
+  }
+  .han{font-family:"Noto Serif HK","Songti TC","Songti SC",serif;}
+  .lat{font-family:"Zen Kaku Gothic New",-apple-system,BlinkMacSystemFont,sans-serif;}
+
+  .wrap{max-width:34rem;margin:0 auto;padding:2.75rem 1.5rem 4rem;}
+
+  /* ---------- masthead ---------- */
+  .mast{display:flex;flex-direction:column;gap:.55rem;}
+  .mast h1{
+    font-family:"Noto Serif HK","Songti TC",serif;
+    font-weight:300;font-size:2.05rem;line-height:1;margin:0;
+    letter-spacing:.34em;text-indent:.34em;
+  }
+  .mast .en{
+    font-size:.575rem;letter-spacing:.42em;text-transform:uppercase;
+    color:var(--ink3);font-weight:400;
+  }
+  .rule{height:1px;background:var(--rule);border:0;margin:0;}
+  .rule-soft{height:1px;background:var(--rule-soft);border:0;margin:0;}
+
+  .meta{
+    display:flex;align-items:baseline;justify-content:space-between;
+    gap:1rem;font-size:.72rem;color:var(--ink2);letter-spacing:.06em;
+  }
+  .meta .clock{
+    font-family:"Noto Serif HK",serif;font-weight:300;
+    font-size:.98rem;letter-spacing:.1em;color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  .daytag{color:var(--ink3);}
+  .daytag b{font-weight:500;color:var(--ink2);}
+
+  /* ---------- controls ---------- */
+  .dirs{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--ink);margin-top:.3rem;}
+  .dir{
+    appearance:none;background:transparent;border:0;cursor:pointer;
+    padding:.72rem .4rem;display:flex;flex-direction:column;align-items:center;gap:.2rem;
+    color:var(--ink3);font-family:inherit;font-size:.95rem;font-weight:300;letter-spacing:.2em;
+    text-indent:.2em;transition:background .18s ease,color .18s ease;
+  }
+  .dir + .dir{border-left:1px solid var(--ink);}
+  .dir small{font-size:.56rem;letter-spacing:.14em;text-indent:.14em;opacity:.85;}
+  .dir[aria-pressed="true"]{background:var(--ink);color:var(--paper);}
+  .dir[aria-pressed="true"] small{opacity:.7;}
+  .dir:not([aria-pressed="true"]):hover{color:var(--ink2);background:var(--sunk);}
+
+  .showing{
+    margin:.95rem 0 0;font-size:.76rem;line-height:1.6;
+    color:var(--ink2);letter-spacing:.06em;
+  }
+  .showing b{font-weight:500;color:var(--ink);box-shadow:inset 0 -1px 0 var(--bengara);}
+  .showing i{font-style:normal;color:var(--ink3);font-size:.68rem;letter-spacing:.1em;
+             white-space:nowrap;margin-left:.5rem;}
+
+  .filters{display:flex;gap:1.4rem;font-size:.71rem;letter-spacing:.16em;}
+  .filt{
+    appearance:none;background:none;border:0;padding:.3rem 0;cursor:pointer;
+    color:var(--ink3);font-family:inherit;font-weight:300;
+    border-bottom:1px solid transparent;transition:color .18s ease,border-color .18s ease;
+  }
+  .filt[aria-pressed="true"]{color:var(--ink);border-bottom-color:var(--ink);}
+  .filt:hover{color:var(--ink2);}
+
+  /* ---------- route list ---------- */
+  .list{display:flex;flex-direction:column;}
+  .route{
+    display:grid;grid-template-columns:4.5rem 1fr;gap:1rem;
+    padding:1.45rem 0;border-bottom:1px solid var(--rule-soft);
+    cursor:pointer;position:relative;
+  }
+  .route:first-child{border-top:1px solid var(--rule);}
+  .route:hover .code{color:var(--ink);}
+  .route:focus-visible{outline:1px solid var(--focus);outline-offset:.4rem;}
+
+  .rail{display:flex;flex-direction:column;gap:.38rem;padding-top:.2rem;}
+  .code{
+    font-size:.66rem;letter-spacing:.19em;font-weight:400;color:var(--ink2);
+    transition:color .18s ease;
+  }
+  .mode{
+    font-size:.56rem;letter-spacing:.2em;color:var(--ink3);
+  }
+  .mode.ferry{color:var(--ai);}
+
+  .body{min-width:0;}
+  .dest{
+    font-family:"Noto Serif HK","Songti TC",serif;font-weight:300;
+    font-size:1.06rem;letter-spacing:.08em;line-height:1.35;margin:0 0 .1rem;
+  }
+  .desten{font-size:.56rem;letter-spacing:.16em;color:var(--ink3);text-transform:uppercase;}
+  .board{font-size:.75rem;letter-spacing:.05em;color:var(--ink2);margin-top:.3rem;}
+  .board b{font-weight:500;color:var(--ink);}
+
+  .lead{display:flex;align-items:flex-end;gap:.85rem;margin-top:1rem;}
+  .big{
+    font-family:"Noto Serif HK","Songti TC",serif;font-weight:200;
+    font-size:2.5rem;line-height:.9;letter-spacing:.03em;
+    font-variant-numeric:tabular-nums;color:var(--ink);
+  }
+  .cd{font-size:.78rem;letter-spacing:.08em;padding-bottom:.18rem;color:var(--moss);}
+  .cd .s{font-size:.66rem;opacity:.6;}
+  .cd.soon{color:var(--ochre);}
+  .cd.now{color:var(--bengara);}
+  .cd.imminent{color:var(--bengara);font-weight:500;}
+
+  .gauge{height:1px;background:var(--rule-soft);margin-top:.85rem;overflow:hidden;}
+  .gauge i{display:block;height:1px;background:var(--ink3);transform-origin:left;transition:transform .9s linear;}
+  .gauge i.soon{background:var(--ochre);}
+  .gauge i.now{background:var(--bengara);}
+
+  .then{
+    display:flex;gap:1.15rem;margin-top:.8rem;
+    font-size:.78rem;color:var(--ink3);font-variant-numeric:tabular-nums;letter-spacing:.06em;
+  }
+  .then span sup{font-size:.6em;color:var(--bengara);}
+  .ended{margin-top:1rem;font-size:.8rem;color:var(--ink3);letter-spacing:.1em;}
+  .starred{color:var(--bengara);}
+
+  /* ---------- notes ---------- */
+  .notes{margin-top:2.5rem;display:flex;flex-direction:column;gap:.55rem;}
+  .notes h2{
+    font-size:.58rem;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--ink3);font-weight:400;margin:0 0 .35rem;
+  }
+  .notes p{
+    margin:0;font-size:.71rem;line-height:1.75;color:var(--ink2);
+    padding-left:1.1rem;text-indent:-1.1rem;
+  }
+  .notes p::before{content:"—　";color:var(--ink3);}
+
+  /* ---------- settings ---------- */
+  details.setup{margin-top:2.25rem;}
+  details.setup summary{
+    list-style:none;cursor:pointer;font-size:.62rem;letter-spacing:.3em;
+    text-transform:uppercase;color:var(--ink3);padding:.6rem 0;
+    border-top:1px solid var(--rule-soft);
+  }
+  details.setup summary::-webkit-details-marker{display:none;}
+  details.setup summary:hover{color:var(--ink2);}
+  .panel{display:flex;flex-direction:column;gap:1.4rem;padding:1rem 0 .5rem;}
+  .field{display:flex;flex-direction:column;gap:.55rem;}
+  .field label{font-size:.65rem;letter-spacing:.16em;color:var(--ink3);}
+  .field label b{color:var(--ink2);font-weight:400;font-variant-numeric:tabular-nums;}
+  .segs{display:flex;gap:.5rem;flex-wrap:wrap;}
+  .seg{
+    appearance:none;cursor:pointer;font-family:inherit;font-weight:300;
+    font-size:.7rem;letter-spacing:.1em;padding:.42rem .8rem;
+    background:transparent;color:var(--ink3);
+    border:1px solid var(--rule);transition:all .18s ease;
+  }
+  .seg[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .seg:hover{color:var(--ink2);border-color:var(--ink3);}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:1px;
+    background:var(--rule);outline:none;cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:.75rem;height:.75rem;
+    background:var(--bengara);border:0;cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:.75rem;height:.75rem;background:var(--bengara);border:0;cursor:pointer;
+  }
+  .linkbtn{
+    appearance:none;background:none;border:0;padding:0;cursor:pointer;
+    font-family:inherit;font-size:.65rem;letter-spacing:.12em;
+    color:var(--ink3);border-bottom:1px solid var(--rule);
+  }
+  .linkbtn:hover{color:var(--ink2);}
+
+  /* ---------- sheet ---------- */
+  .scrim{
+    position:fixed;inset:0;background:rgba(20,17,13,.55);
+    display:none;align-items:flex-end;justify-content:center;z-index:40;
+    backdrop-filter:blur(2px);
+  }
+  .scrim.open{display:flex;}
+  .sheet{
+    background:var(--surface);width:100%;max-width:34rem;max-height:86vh;
+    display:flex;flex-direction:column;border-top:2px solid var(--ink);
+  }
+  @media(min-width:40rem){
+    .scrim{align-items:center;}
+    .sheet{border:1px solid var(--ink);max-height:80vh;}
+  }
+  .sheet header{
+    padding:1.5rem 1.5rem 1.1rem;display:flex;justify-content:space-between;
+    align-items:flex-start;gap:1rem;border-bottom:1px solid var(--rule);
+  }
+  .sheet h3{
+    font-family:"Noto Serif HK","Songti TC",serif;font-weight:300;
+    font-size:1.1rem;letter-spacing:.1em;margin:0 0 .3rem;
+  }
+  .sheet .sub{font-size:.65rem;letter-spacing:.14em;color:var(--ink3);}
+  .close{
+    appearance:none;background:none;border:0;cursor:pointer;flex:none;
+    font-family:inherit;font-size:.65rem;letter-spacing:.2em;color:var(--ink3);
+    padding:.3rem 0;border-bottom:1px solid var(--rule);
+  }
+  .close:hover{color:var(--ink);}
+  .grid{
+    padding:1.35rem 1.5rem 2rem;overflow-y:auto;
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(3.6rem,1fr));
+    gap:.1rem .1rem;
+  }
+  .cell{
+    padding:.62rem .2rem;text-align:center;font-size:.82rem;
+    font-variant-numeric:tabular-nums;letter-spacing:.04em;
+    color:var(--ink);background:var(--paper);position:relative;
+  }
+  .cell.past{color:var(--ink3);opacity:.42;background:transparent;}
+  .cell.next{background:var(--ink);color:var(--paper);}
+  .cell sup{font-size:.62em;color:var(--bengara);}
+  .cell.next sup{color:var(--paper);}
+  .sheet footer{
+    padding:.9rem 1.5rem 1.4rem;border-top:1px solid var(--rule);
+    font-size:.66rem;line-height:1.7;color:var(--ink3);
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+</style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen p-3 sm:p-6 flex flex-col items-center select-none font-sans">
+<body>
 
-  <div class="w-full max-w-md space-y-3 pb-10">
-    
-    <!-- 1. Interactive Simulator Console -->
-    <div class="bg-slate-900/95 border border-indigo-500/30 rounded-2xl p-3.5 shadow-lg backdrop-blur">
-      <div class="flex items-center justify-between cursor-pointer" onclick="toggleSimPanel()">
-        <div class="flex items-center space-x-2">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          <span class="text-xs font-bold tracking-wider uppercase text-indigo-400">測試與模擬控制台</span>
-        </div>
-        <span id="sim-toggle-icon" class="text-xs text-slate-400">▼ 展開設定</span>
+
+<div class="wrap">
+
+  <div class="mast">
+    <h1 class="han">馬灣時刻</h1>
+    <div class="en lat">Ma Wan &nbsp;/&nbsp; Park Island Departures</div>
+    <hr class="rule">
+    <div class="meta">
+      <span class="daytag han" id="daytag">—</span>
+      <span class="clock" id="clock">--:--:--</span>
+    </div>
+    <hr class="rule-soft">
+  </div>
+
+  <div class="dirs" role="group" aria-label="方向">
+    <button class="dir han" id="d-out" aria-pressed="true" onclick="setDir('out')">
+      出島<small class="lat">FROM MA WAN</small>
+    </button>
+    <button class="dir han" id="d-in" aria-pressed="false" onclick="setDir('in')">
+      入島<small class="lat">FROM TOWN</small>
+    </button>
+  </div>
+  <p class="showing han" id="showing"></p>
+
+  <hr class="rule-soft">
+
+  <div class="filters han" role="group" aria-label="種類" style="margin:.9rem 0 1.4rem;">
+    <button class="filt" id="f-all" aria-pressed="true" onclick="setFilter('all')">全部</button>
+    <button class="filt" id="f-bus" aria-pressed="false" onclick="setFilter('bus')">巴士</button>
+    <button class="filt" id="f-ferry" aria-pressed="false" onclick="setFilter('ferry')">渡輪</button>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="notes">
+    <h2 class="lat">Notes</h2>
+    <p class="han">渡輪所列時間為<b>碼頭關閘時間</b>，並非開船時間。</p>
+    <p class="han">NR330 星期六上午標<span class="starred">＊</span>之班次，於星期日及公眾假期停開。</p>
+    <p class="han">NR332 於 01:00 至 05:30 由珀麗灣開出之通宵班次繞經港鐵青衣站。青衣站通宵登車時間：01:15・02:00・02:45・03:30・04:15・05:00・05:45。</p>
+    <p class="han">NR334 標<span class="starred">＊</span>之班次途經港珠澳大橋香港口岸，機場至口岸約需十分鐘。</p>
+    <p class="han">星期六與星期日／公眾假期時間表不同。公眾假期已按政府 2026–2027 年公眾假期表自動判別。</p>
+    <p class="han">資料源自珀麗灣客運官方時間表（NR330／NR332 生效 2025-04-01，NR334 生效 2025-09-23，NR338S 生效 2025-09-01，NR338 生效 2025-04-01，渡輪生效 2025-08-17）。班次或因交通及船務調動而調整。</p>
+  </div>
+
+  <details class="setup">
+    <summary class="lat">Settings &nbsp;·&nbsp; 設定</summary>
+    <div class="panel">
+      <div class="field">
+        <label>模擬時間　<b id="simval">跟隨系統</b>　<button class="linkbtn" onclick="resetTime()">重設</button></label>
+        <input type="range" id="slider" min="0" max="1439" step="1" value="0" aria-label="模擬時間">
       </div>
-
-      <div id="sim-panel" class="hidden mt-3 pt-3 border-t border-slate-800 space-y-3 text-xs">
-        <!-- Time Slider -->
-        <div>
-          <div class="flex justify-between text-slate-400 mb-1">
-            <span>自訂時間: <b id="sim-time-val" class="text-indigo-300 font-mono">跟隨系統</b></span>
-            <button onclick="resetToRealTime()" class="text-indigo-400 underline font-medium">重設為現在</button>
-          </div>
-          <input type="range" id="sim-time-slider" min="0" max="1439" step="1" 
-                 class="w-full accent-indigo-500 bg-slate-800 rounded-lg cursor-pointer">
+      <div class="field">
+        <label>時間表</label>
+        <div class="segs">
+          <button class="seg han" id="dt-auto" aria-pressed="true" onclick="setDayMode('auto')">自動</button>
+          <button class="seg han" id="dt-weekday" aria-pressed="false" onclick="setDayMode('weekday')">平日</button>
+          <button class="seg han" id="dt-saturday" aria-pressed="false" onclick="setDayMode('saturday')">星期六</button>
+          <button class="seg han" id="dt-holiday" aria-pressed="false" onclick="setDayMode('holiday')">日／假</button>
         </div>
-
-        <!-- Location Preset -->
-        <div>
-          <span class="text-slate-400 block mb-1.5">模擬位置 (自動切換出/入馬灣)：</span>
-          <div class="grid grid-cols-3 gap-1.5">
-            <button onclick="setSimLocation('ma_wan')" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded text-slate-200 border border-slate-700 transition">📍 馬灣島內</button>
-            <button onclick="setSimLocation('city')" class="py-1.5 px-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 rounded text-slate-200 border border-slate-700 transition">📍 市區 (青衣/葵芳)</button>
-            <button onclick="setSimLocation('real')" class="py-1.5 px-2 bg-indigo-950 hover:bg-indigo-900 rounded text-indigo-300 border border-indigo-700 transition">📡 真實 GPS</button>
-          </div>
+      </div>
+      <div class="field">
+        <label>方向偵測</label>
+        <div class="segs">
+          <button class="seg han" onclick="locate()">以定位判斷</button>
         </div>
-
-        <!-- Schedule Mode -->
-        <div>
-          <span class="text-slate-400 block mb-1.5">時間表類型：</span>
-          <div class="grid grid-cols-3 gap-1.5">
-            <button onclick="setDayType('auto')" id="btn-day-auto" class="py-1 px-2 rounded bg-indigo-600 text-white font-medium">自動偵測</button>
-            <button onclick="setDayType('weekday')" id="btn-day-weekday" class="py-1 px-2 rounded bg-slate-800 text-slate-300">強制平日</button>
-            <button onclick="setDayType('holiday')" id="btn-day-holiday" class="py-1 px-2 rounded bg-slate-800 text-slate-300">強制假日</button>
-          </div>
-        </div>
+        <label id="gpsmsg" style="letter-spacing:.06em;"></label>
       </div>
     </div>
+  </details>
 
-    <!-- 2. Header & Live Clock -->
-    <header class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm">
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-lg font-bold text-white tracking-tight">馬灣實時下班車</h1>
-          <div class="flex items-center space-x-2 mt-0.5">
-            <span id="current-clock-display" class="font-mono text-xs text-indigo-400 font-semibold">--:--:--</span>
-            <span class="text-slate-600">•</span>
-            <span id="day-badge" class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">平日</span>
-          </div>
-        </div>
-        <div class="text-right">
-          <span id="location-badge" class="inline-block text-[11px] px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300">
-            定位中...
-          </span>
-        </div>
-      </div>
+</div>
 
-      <!-- Direction Toggle -->
-      <div class="mt-4 grid grid-cols-2 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800/80">
-        <button id="tab-from-mawan" onclick="setDirection('from_ma_wan')" 
-                class="py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 bg-blue-600 text-white shadow">
-          <span>🚢 出馬灣</span>
-          <span class="text-[10px] opacity-75 font-normal">(往市區)</span>
-        </button>
-        <button id="tab-to-mawan" onclick="setDirection('to_ma_wan')" 
-                class="py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 text-slate-400 hover:text-white">
-          <span>🏝️ 入馬灣</span>
-          <span class="text-[10px] opacity-75 font-normal">(往珀麗灣)</span>
-        </button>
+<div class="scrim" id="scrim" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <header>
+      <div>
+        <h3 class="han" id="sheet-title">—</h3>
+        <div class="sub lat" id="sheet-sub">—</div>
       </div>
+      <button class="close lat" onclick="closeSheet()">CLOSE</button>
     </header>
-
-    <!-- 3. Route Filters -->
-    <div class="flex space-x-2 overflow-x-auto pb-1 text-xs no-scrollbar">
-      <button onclick="filterType('all')" id="filter-all" class="px-3 py-1 rounded-full bg-slate-700 text-white font-medium border border-slate-600 shrink-0">全部路線</button>
-      <button onclick="filterType('bus')" id="filter-bus" class="px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800 shrink-0">僅看巴士 (青衣/荃灣/葵芳)</button>
-      <button onclick="filterType('ferry')" id="filter-ferry" class="px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800 shrink-0">僅看渡輪 (中環)</button>
-    </div>
-
-    <!-- 4. Schedule Cards -->
-    <main id="routes-container" class="space-y-3">
-      <!-- Injected via JavaScript -->
-    </main>
-
+    <div class="grid" id="sheet-grid"></div>
+    <footer class="han" id="sheet-foot"></footer>
   </div>
+</div>
 
-  <!-- 5. Full Timetable Modal -->
-  <div id="timetable-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[80vh] flex flex-col shadow-2xl">
-      <div class="p-4 border-b border-slate-800 flex items-center justify-between">
-        <div>
-          <h3 id="modal-title" class="font-bold text-base text-white">路線時刻表</h3>
-          <p id="modal-subtitle" class="text-xs text-slate-400 mt-0.5"></p>
-        </div>
-        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center font-bold">✕</button>
-      </div>
-      <div id="modal-grid" class="p-4 overflow-y-auto grid grid-cols-4 gap-2 text-center text-sm font-mono">
-        <!-- Timetable entries -->
-      </div>
-    </div>
-  </div>
+<script>
+/* ============================================================
+   Schedule notation
+   "HH mm mm mm / HH mm ..."   hours >= 24 are after midnight
+   a trailing * flags a marked departure (meaning is per route)
+   ============================================================ */
+function T(spec){
+  const out = [];
+  spec.split('/').forEach(seg => {
+    const p = seg.trim().split(/\s+/).filter(Boolean);
+    if (!p.length) return;
+    const h = parseInt(p[0], 10);
+    for (let i = 1; i < p.length; i++){
+      const star = p[i].indexOf('*') > -1;
+      out.push({ t: h * 60 + parseInt(p[i], 10), star });
+    }
+  });
+  return out.sort((a, b) => a.t - b.t);
+}
 
-  <script>
-    // ==========================================
-    // Timetable Database
-    // ==========================================
-    const TIMETABLES = {
-      tsing_yi: {
-        id: "tsing_yi",
-        name: "青衣站 (NR330)",
-        type: "bus",
-        limit: 3,
-        weekday: {
-          to_ma_wan: ["06:00","06:20","06:40","07:00","07:15","07:30","07:45","08:00","08:15","08:30","08:45","09:00","09:20","09:40","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","17:30","18:00","18:15","18:30","18:45","19:00","19:20","19:40","20:00","21:00","22:00","23:00","23:30","23:59"],
-          from_ma_wan: ["05:40","06:00","06:15","06:30","06:45","07:00","07:15","07:30","07:45","08:00","08:15","08:30","09:00","09:30","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","17:30","18:00","18:15","18:30","18:45","19:00","19:30","20:00","21:00","22:00","23:00","23:45"]
-        },
-        holiday: {
-          to_ma_wan: ["06:00","06:30","07:00","07:20","07:40","08:00","08:20","08:40","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","18:30","19:00","20:00","21:00","22:00","23:00","23:59"],
-          from_ma_wan: ["05:40","06:00","06:30","07:00","07:20","07:40","08:00","08:30","09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","18:30","19:00","20:00","21:00","22:00","23:30"]
-        }
-      },
-      tsuen_wan: {
-        id: "tsuen_wan",
-        name: "荃灣站 / 荃灣西 (NR331/S)",
-        type: "bus",
-        limit: 2,
-        weekday: {
-          to_ma_wan: ["06:00","06:30","07:00","07:20","07:40","08:00","08:20","08:40","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:20","18:40","19:00","20:00","21:30","23:00","23:30"],
-          from_ma_wan: ["06:00","06:25","06:50","07:10","07:30","07:50","08:10","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:20","18:40","19:00","20:00","21:30","23:00"]
-        },
-        holiday: {
-          to_ma_wan: ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:30","19:00","20:00","21:30","23:30"],
-          from_ma_wan: ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:30","19:00","20:00","21:30","23:00"]
-        }
-      },
-      kwai_fong: {
-        id: "kwai_fong",
-        name: "葵芳新都會 (NR332)",
-        type: "bus",
-        limit: 2,
-        weekday: {
-          to_ma_wan: ["06:00","06:20","06:40","07:00","07:20","07:40","08:00","08:20","08:40","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:20","18:40","19:00","20:00","21:00","22:00","23:00","23:40"],
-          from_ma_wan: ["06:00","06:20","06:40","07:00","07:20","07:40","08:00","08:20","08:40","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:20","18:40","19:00","20:00","21:00","22:00","23:00","23:20"]
-        },
-        holiday: {
-          to_ma_wan: ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:30","19:00","20:00","21:00","22:00","23:00","23:40"],
-          from_ma_wan: ["06:00","06:30","07:00","07:30","08:00","08:30","09:00","10:00","12:00","14:00","16:00","17:30","18:00","18:30","19:00","20:00","21:00","22:00","23:00","23:20"]
-        }
-      },
-      ferry_central: {
-        id: "ferry_central",
-        name: "中環 2 號碼頭 渡輪",
-        type: "ferry",
-        limit: 1,
-        weekday: {
-          to_ma_wan: ["07:00","08:00","09:00","10:00","12:00","14:00","16:00","17:30","18:15","19:00","20:00","21:00","22:00","23:30"],
-          from_ma_wan: ["06:30","07:30","08:30","09:30","11:30","13:30","15:30","17:00","17:45","18:30","19:30","20:30","21:30","23:00"]
-        },
-        holiday: {
-          to_ma_wan: ["07:30","09:00","10:30","12:00","13:30","15:00","16:30","18:00","19:30","21:00","22:30","23:30"],
-          from_ma_wan: ["07:00","08:30","10:00","11:30","13:00","14:30","16:00","17:30","19:00","20:30","22:00","23:00"]
-        }
-      }
-    };
+/* NR330 — Park Island <-> MTR Tsing Yi Station */
+const NR330_WD_OUT = '06 00 15 30 35 40 45 50 55 / 07 00 05 10 15 20 25 30 34 38 42 46 50 54 58 / 08 02 06 10 14 18 22 26 30 35 40 45 50 55 / 09 00 05 10 15 20 25 30 35 40 45 50 55 / 10 00 10 20 30 40 50 / 11 00 10 20 30 40 50 / 12 00 10 20 30 40 50 / 13 00 10 20 30 40 50 / 14 00 10 20 30 40 50 / 15 00 10 20 30 40 50 / 16 00 10 20 30 36 42 48 54 / 17 00 06 12 18 24 30 36 42 48 54 / 18 00 06 12 18 24 30 36 42 48 54 / 19 00 06 12 18 24 30 36 42 48 54 / 20 00 12 24 36 48 / 21 00 12 24 36 48 / 22 00 12 24 36 48 / 23 00 15 30 45 / 24 00 15 30';
+const NR330_WD_IN  = '06 15 30 40 50 / 07 00 10 20 30 40 50 / 08 00 10 20 30 40 50 / 09 00 10 20 30 40 50 / 10 00 10 20 30 40 50 / 11 00 10 20 30 40 50 / 12 00 10 20 30 40 50 / 13 00 10 20 30 40 50 / 14 00 10 20 30 40 50 / 15 00 10 20 30 40 50 / 16 00 10 20 30 36 42 48 54 / 17 00 06 12 18 24 30 36 42 48 54 / 18 00 05 10 15 20 25 30 35 40 45 50 55 / 19 00 05 10 15 20 25 30 35 40 45 50 55 / 20 00 05 10 15 20 25 30 36 42 48 54 / 21 00 06 12 18 24 30 36 42 48 54 / 22 00 06 12 18 24 30 36 42 48 54 / 23 00 06 12 18 24 30 40 50 / 24 00 15 30 45';
+const NR330_WE_OUT = '06 00 15 30 40 50 / 07 00 10 20 30 35* 40 45* 50 55* / 08 00 05* 10 15* 20 25* 30 35* 40 45* 50 55* / 09 00 06 12 18 24 30 36 42 48 54 / 10 00 06 12 18 24 30 36 42 48 54 / 11 00 05 10 15 20 25 30 35 40 45 50 55 / 12 00 05 10 15 20 25 30 35 40 45 50 55 / 13 00 06 12 18 24 30 36 42 48 54 / 14 00 06 12 18 24 30 36 42 48 54 / 15 00 06 12 18 24 30 36 42 48 54 / 16 00 06 12 18 24 30 36 42 48 54 / 17 00 05 10 15 20 25 30 35 40 45 50 55 / 18 00 05 10 15 20 25 30 35 40 45 50 55 / 19 00 06 12 18 24 30 36 42 48 54 / 20 00 12 24 36 48 / 21 00 12 24 36 48 / 22 00 12 24 36 48 / 23 00 15 30 45 / 24 00 15 30';
+const NR330_WE_IN  = '06 15 30 40 50 / 07 00 10 20 30 40 50 / 08 00 10 20 30 40 50 / 09 00 10 20 30 40 50 / 10 00 06 12 18 24 30 36 42 48 54 / 11 00 05 10 15 20 25 30 35 40 45 50 55 / 12 00 05 10 15 20 25 30 35 40 45 50 55 / 13 00 06 12 18 24 30 36 42 48 54 / 14 00 06 12 18 24 30 36 42 48 54 / 15 00 06 12 18 24 30 36 42 48 54 / 16 00 06 12 18 24 30 36 42 48 54 / 17 00 05 10 15 20 25 30 35 40 45 50 55 / 18 00 05 10 15 20 25 30 35 40 45 50 55 / 19 00 06 12 18 24 30 36 42 48 54 / 20 00 06 12 18 24 30 36 42 48 54 / 21 00 06 12 18 24 30 36 42 48 54 / 22 00 06 12 18 24 30 36 42 48 54 / 23 00 06 12 18 24 30 40 50 / 24 00 15 30 45';
 
-    // ==========================================
-    // State Management
-    // ==========================================
-    let state = {
-      direction: "from_ma_wan",
-      simulatedMinutes: null,
-      dayTypeMode: "auto",
-      filter: "all",
-      isSimPanelOpen: false
-    };
+/* NR332 — Park Island <-> MTR Kwai Fong Station (Metroplaza) */
+const MID = '10 00 12 24 36 48 / 11 00 12 24 36 48 / 12 00 12 24 36 48 / 13 00 12 24 36 48 / 14 00 12 24 36 48 / 15 00 12 24 36 48 / 16 00 12 24 36 48';
+const NR332_NIGHT_OUT = '24 00 15 45 / 25 00 45 / 26 30 / 27 15 / 28 00 45 / 29 30';
+const NR332_NIGHT_IN  = '24 00 30 / 25 00 25 / 26 10 55 / 27 40 / 28 25 / 29 10 55';
+const NR332_WD_OUT = '06 00 15 30 40 50 / 07 00 10 20 30 38 46 54 / 08 02 10 18 26 34 42 50 / 09 00 10 20 30 40 50 / ' + MID + ' / 17 00 10 20 30 40 50 / 18 00 10 20 30 40 50 / 19 00 12 24 36 48 / 20 00 12 24 36 48 / 21 00 12 24 36 48 / 22 00 12 24 36 48 / 23 00 15 30 45 / ' + NR332_NIGHT_OUT;
+const NR332_WD_IN  = '06 20 35 45 55 / 07 05 15 25 35 45 55 / 08 05 15 25 35 45 55 / 09 05 15 25 35 45 / ' + MID + ' / 17 00 10 20 30 40 50 58 / 18 06 14 22 30 38 46 54 / 19 02 10 18 26 34 42 50 58 / 20 06 14 22 30 38 46 54 / 21 02 10 18 26 34 42 50 58 / 22 06 14 22 30 38 46 54 / 23 02 15 30 45 / ' + NR332_NIGHT_IN;
+const NR332_WE_OUT = '06 00 15 30 40 50 / 07 00 10 20 30 40 50 / 08 00 10 20 30 40 50 / 09 00 10 20 30 45 / ' + MID + ' / 17 00 10 20 30 40 50 / 18 00 10 20 30 40 50 / 19 00 12 24 36 48 / 20 00 12 24 36 48 / 21 00 12 24 36 48 / 22 00 12 24 36 48 / 23 00 15 30 45 / ' + NR332_NIGHT_OUT;
+const NR332_WE_IN  = '06 20 35 45 55 / 07 05 15 25 35 45 55 / 08 05 15 25 35 45 55 / 09 05 15 25 35 45 / ' + MID + ' / 17 00 10 20 30 40 50 / 18 00 10 20 30 38 46 54 / 19 02 10 18 26 34 42 50 58 / 20 06 14 22 30 38 46 54 / 21 02 10 18 26 34 42 50 58 / 22 06 14 22 30 38 46 54 / 23 02 15 30 45 / ' + NR332_NIGHT_IN;
 
-    const MA_WAN_LAT = 22.3530;
-    const MA_WAN_LNG = 114.0605;
+/* NR334 — Park Island <-> HK International Airport T2 (daily) */
+let a334o = [], a334i = [];
+for (let h = 6; h <= 24; h++){
+  if (h < 24) a334o.push(h + ' 00* 30'); else a334o.push('24 00*');
+  if (h === 6) a334i.push('06 30*'); else a334i.push(h + ' 00 30*');
+}
+const NR334_OUT = a334o.join(' / ');
+const NR334_IN  = a334i.join(' / ');
 
-    function getNowDate() {
-      const now = new Date();
-      if (state.simulatedMinutes !== null) {
-        now.setHours(Math.floor(state.simulatedMinutes / 60));
-        now.setMinutes(state.simulatedMinutes % 60);
-      }
-      return now;
+/* 331 / 331S — Sun Bus, Ma Wan <-> Tsuen Wan (daily, single table) */
+const N331_OUT  = '06 00 30 / 07 00 20 40 / 08 00 20 40 / 09 00 20 40 / 10 00 20 40 / 11 00 20 40 / 12 00 20 40 / 13 00 20 40 / 14 00 20 40 / 15 00 20 40 / 16 00 20 40 / 17 00 20 40 / 18 00 20 40 / 19 00 20 40 / 20 00 20 40 / 21 00 30 / 22 00 30 / 23 00 30 / 24 00';
+const N331_IN   = '06 20 50 / 07 20 40 / 08 00 20 40 / 09 00 20 40 / 10 00 20 40 / 11 00 20 40 / 12 00 20 40 / 13 00 20 40 / 14 00 20 40 / 15 00 20 40 / 16 00 20 40 / 17 00 20 40 / 18 00 20 40 / 19 00 20 40 / 20 00 20 40 / 21 00 20 50 / 22 20 50 / 23 20 50 / 24 20';
+const N331S_OUT = '06 45 / 07 15 45 / 08 15 45 / 09 15 45 / 10 15 45 / 11 15 45 / 12 15 45 / 13 15 45 / 14 15 45 / 15 15 45 / 16 15 45 / 17 15 45 / 18 15 45 / 19 15 45 / 20 15 45 / 21 15 45 / 22 15 / 23 15';
+const N331S_IN  = '07 10 40 / 08 10 40 / 09 10 40 / 10 10 40 / 11 10 40 / 12 10 40 / 13 10 40 / 14 10 40 / 15 10 40 / 16 10 40 / 17 10 40 / 18 10 40 / 19 10 40 / 20 10 40 / 21 10 40 / 22 10 40 / 23 40';
+
+const ROUTES = [
+  {
+    id:'nr330', code:'NR330', op:'PITCL', type:'bus',
+    dest:{ out:'港鐵青衣站', in:'珀麗灣' },
+    en:{ out:'MTR Tsing Yi Station', in:'Park Island' },
+    stop:{ out:'珀麗灣總站', in:'港鐵青衣站 C 出口' },
+    satStars:true, show:3,
+    foot:'每日服務。珀麗灣開 06:00–00:30，青衣站開 06:15–00:45，班距 4–15 分鐘。標＊者星期六限定。',
+    wd:{ out:T(NR330_WD_OUT), in:T(NR330_WD_IN) },
+    we:{ out:T(NR330_WE_OUT), in:T(NR330_WE_IN) }
+  },
+  {
+    id:'nr332', code:'NR332', op:'PITCL', type:'bus',
+    dest:{ out:'港鐵葵芳站', in:'珀麗灣' },
+    en:{ out:'MTR Kwai Fong Station', in:'Park Island' },
+    stop:{ out:'珀麗灣總站', in:'葵芳新都會廣場' },
+    satStars:false, show:3,
+    foot:'每日服務，設通宵班次。01:00 後由珀麗灣開出者繞經港鐵青衣站；青衣站通宵登車 01:15・02:00・02:45・03:30・04:15・05:00・05:45。',
+    wd:{ out:T(NR332_WD_OUT), in:T(NR332_WD_IN) },
+    we:{ out:T(NR332_WE_OUT), in:T(NR332_WE_IN) }
+  },
+  {
+    id:'n331', code:'331', op:'SUN BUS', type:'bus',
+    dest:{ out:'港鐵荃灣站', in:'馬灣・珀欣路' },
+    en:{ out:'MTR Tsuen Wan Station', in:'Ma Wan (Pak Yan Road)' },
+    stop:{ out:'馬灣珀欣路', in:'荃灣站西樓角路' },
+    satStars:false, show:3,
+    foot:'陽光巴士（Sun Bus）路線，非珀麗灣客運。每日同一時間表，20 分鐘一班。經基慧小學、田寮新村、馬灣鄉事會路。全程訪客 $14.6，馬灣居民八達通 $9.0。生效 2024-12-15。',
+    wd:{ out:T(N331_OUT), in:T(N331_IN) },
+    we:{ out:T(N331_OUT), in:T(N331_IN) }
+  },
+  {
+    id:'n331s', code:'331S', op:'SUN BUS', type:'bus',
+    dest:{ out:'港鐵荃灣西站', in:'馬灣・珀欣路' },
+    en:{ out:'MTR Tsuen Wan West Stn', in:'Ma Wan (Pak Yan Road)' },
+    stop:{ out:'馬灣珀欣路', in:'荃灣西站如心廣場' },
+    satStars:false, show:2,
+    foot:'陽光巴士（Sun Bus）路線。每日同一時間表，30 分鐘一班，途經港鐵荃灣站（大河道北）後往荃灣西站（如心廣場）。全程訪客 $15.3，馬灣居民八達通 $9.4。生效 2024-12-15。',
+    wd:{ out:T(N331S_OUT), in:T(N331S_IN) },
+    we:{ out:T(N331S_OUT), in:T(N331S_IN) }
+  },
+  {
+    id:'ferry_central', code:'渡輪', op:'PITCL', type:'ferry',
+    dest:{ out:'中環 2 號碼頭', in:'珀麗灣碼頭' },
+    en:{ out:'Central Pier No. 2', in:'Park Island Pier' },
+    stop:{ out:'珀麗灣碼頭', in:'中環 2 號碼頭' },
+    satStars:false, show:2,
+    foot:'所列為碼頭關閘時間。星期六、日及公眾假期為兩小時一班，末班珀麗灣 20:00 ／ 中環 20:30。',
+    wd:{
+      out:T('06 30 / 07 00 20 / 08 00 20 / 09 00 30 / 10 00 / 12 00 / 14 00 / 16 00 / 17 00 30 / 18 00 30 / 19 00 30 / 20 00 / 21 00'),
+      in: T('07 00 30 50 / 08 30 50 / 09 30 / 10 00 30 / 12 30 / 14 30 / 16 30 / 17 30 / 18 00 30 / 19 00 30 / 20 00 30 / 21 30')
+    },
+    we:{
+      out:T('08 00 / 10 00 / 12 00 / 14 00 / 16 00 / 18 00 / 20 00'),
+      in: T('08 30 / 10 30 / 12 30 / 14 30 / 16 30 / 18 30 / 20 30')
+    }
+  },
+  {
+    id:'nr338s', code:'NR338S', op:'PITCL', type:'bus',
+    dest:{ out:'中環（經香港站）', in:'珀麗灣' },
+    en:{ out:'Central via Hong Kong Stn.', in:'Park Island' },
+    stop:{ out:'珀麗灣總站', in:'中環碼頭・近三號碼頭' },
+    satStars:false, show:2,
+    foot:'途經港鐵香港站（民祥街）。中環總站近三號碼頭。珀麗灣開出後約 20 分鐘到香港站、30 分鐘到中環碼頭。',
+    wd:{
+      out:T('07 35 40 / 08 35 40 / 11 00 / 13 00 / 15 00 30 / 16 30 / 20 30 / 22 00 / 23 00'),
+      in: T('08 05 10 / 09 05 10 / 11 30 / 13 30 / 15 30 / 16 00 / 17 00 / 21 00 / 22 30 / 23 30')
+    },
+    we:{
+      out:T('09 00 / 11 00 / 13 00 / 15 00 / 17 00 / 19 00 / 21 00 / 22 00 / 23 00'),
+      in: T('09 30 / 11 30 / 13 30 / 15 30 / 17 30 / 19 30 / 21 30 / 22 30 / 23 30')
+    }
+  },
+  {
+    id:'nr334', code:'NR334', op:'PITCL', type:'bus',
+    dest:{ out:'機場二號客運大樓', in:'珀麗灣' },
+    en:{ out:'HKIA Terminal 2', in:'Park Island' },
+    stop:{ out:'珀麗灣總站', in:'機場二號客運大樓・旅遊車 7 號位' },
+    satStars:false, show:2,
+    foot:'每日 30 分鐘一班。標＊之班次途經港珠澳大橋香港口岸。機場一號客運大樓只准落客。本線不設居民票價。',
+    wd:{ out:T(NR334_OUT), in:T(NR334_IN) },
+    we:{ out:T(NR334_OUT), in:T(NR334_IN) }
+  },
+  {
+    id:'nr338', code:'NR338', op:'PITCL', type:'bus',
+    dest:{ out:'中環（通宵）', in:'珀麗灣（通宵）' },
+    en:{ out:'Central · Overnight', in:'Park Island · Overnight' },
+    stop:{ out:'珀麗灣總站', in:'中環二號碼頭' },
+    satStars:false, show:2,
+    foot:'通宵路線，每日行走，經灣仔及海港中心。珀麗灣開 23:50–06:00，中環開 00:30–06:35。',
+    wd:{
+      out:T('23 50 / 25 05 / 26 20 / 27 30 / 28 45 / 30 00'),
+      in: T('24 30 / 25 40 / 26 55 / 28 05 / 29 20 / 30 35')
+    },
+    we:{
+      out:T('23 50 / 25 05 / 26 20 / 27 30 / 28 45 / 30 00'),
+      in: T('24 30 / 25 40 / 26 55 / 28 05 / 29 20 / 30 35')
+    }
+  },
+  {
+    id:'ferry_tw', code:'渡輪', op:'PITCL', type:'ferry',
+    dest:{ out:'荃灣碼頭', in:'珀麗灣碼頭' },
+    en:{ out:'Tsuen Wan Pier', in:'Park Island Pier' },
+    stop:{ out:'珀麗灣碼頭', in:'荃灣碼頭' },
+    satStars:false, show:3,
+    foot:'每日僅三班，所列為碼頭關閘時間。往荃灣另有陽光巴士 331／331S，班次密得多。',
+    wd:{ out:T('08 10 / 09 10 / 16 10'), in:T('08 30 / 09 30 / 16 30') },
+    we:{ out:T('10 10 / 13 10 / 16 10'), in:T('10 30 / 13 30 / 16 30') }
+  }
+];
+
+/* Hong Kong general holidays (gov.hk gazette) */
+const HOLIDAYS = new Set([
+  '2026-01-01','2026-02-17','2026-02-18','2026-02-19','2026-04-03','2026-04-04',
+  '2026-04-06','2026-04-07','2026-05-01','2026-05-25','2026-06-19','2026-07-01',
+  '2026-09-26','2026-10-01','2026-10-19','2026-12-25','2026-12-26',
+  '2027-01-01','2027-02-06','2027-02-08','2027-02-09','2027-03-26','2027-03-27',
+  '2027-03-29','2027-04-05','2027-05-01','2027-05-13','2027-06-09','2027-07-01',
+  '2027-09-16','2027-10-01','2027-10-08','2027-12-25','2027-12-27'
+]);
+
+/* ============================================================
+   State
+   ============================================================ */
+const ANCHOR = 6 * 3600;               /* service day begins 06:00 */
+const store = {
+  get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : v; } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+};
+const state = {
+  dir: store.get('mw.dir', 'out'),
+  filter: store.get('mw.filter', 'all'),
+  simMin: null,
+  dayMode: 'auto',
+  openId: null
+};
+
+function clockNow(){
+  const d = new Date();
+  if (state.simMin !== null){ d.setHours(Math.floor(state.simMin / 60), state.simMin % 60, 0, 0); }
+  return d;
+}
+/* seconds since midnight, then lifted into the running service day */
+function effSeconds(){
+  const d = clockNow();
+  const s = d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds();
+  return s < ANCHOR ? s + 86400 : s;
+}
+function serviceDate(){
+  const d = clockNow();
+  if (d.getHours() * 3600 + d.getMinutes() * 60 < ANCHOR){ d.setDate(d.getDate() - 1); }
+  return d;
+}
+function iso(d){
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function dayType(){
+  if (state.dayMode !== 'auto') return state.dayMode;
+  const d = serviceDate();
+  if (HOLIDAYS.has(iso(d))) return 'holiday';
+  if (d.getDay() === 0) return 'holiday';
+  if (d.getDay() === 6) return 'saturday';
+  return 'weekday';
+}
+function listFor(route){
+  const dt = dayType();
+  const base = dt === 'weekday' ? route.wd : route.we;
+  const arr = base[state.dir] || [];
+  if (dt === 'holiday' && route.satStars) return arr.filter(e => !e.star);
+  return arr;
+}
+function fmt(t){
+  return String(Math.floor(t / 60) % 24).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0');
+}
+
+/* ============================================================
+   Render
+   ============================================================ */
+const DAYNAME = { weekday:'平日班次', saturday:'週六班次', holiday:'假日班次' };
+const DAYFULL = { weekday:'星期一至五', saturday:'星期六', holiday:'星期日及公眾假期' };
+const WK = ['日','一','二','三','四','五','六'];
+
+function render(){
+  const now = clockNow();
+  document.getElementById('clock').textContent =
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0') + ':' +
+    String(now.getSeconds()).padStart(2,'0');
+
+  const sd = serviceDate(), dt = dayType();
+  document.getElementById('daytag').innerHTML =
+    (sd.getMonth() + 1) + '月' + sd.getDate() + '日・星期' + WK[sd.getDay()] +
+    '　<b>' + DAYNAME[dt] + '</b>';
+
+  document.getElementById('showing').innerHTML =
+    (state.dir === 'out'
+      ? '以下為由 <b>馬灣・珀麗灣</b> 開出往市區的班次。'
+      : '以下為由 <b>市區各站</b> 開出返回馬灣的班次。')
+    + (dirSource === 'geo' ? '<i>已按你的位置自動選擇</i>' : '');
+
+  const eff = effSeconds();
+  const listEl = document.getElementById('list');
+  const frag = document.createDocumentFragment();
+
+  ROUTES.forEach(r => {
+    if (state.filter !== 'all' && r.type !== state.filter) return;
+
+    const times = listFor(r);
+    const up = [];
+    for (const e of times){
+      const rem = e.t * 60 - eff;
+      if (rem >= 0){ up.push({ e, rem }); if (up.length === r.show) break; }
     }
 
-    function getCurrentDayType() {
-      if (state.dayTypeMode !== "auto") return state.dayTypeMode;
-      const d = getNowDate();
-      return (d.getDay() === 0) ? "holiday" : "weekday";
+    const el = document.createElement('div');
+    el.className = 'route';
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.onclick = () => openSheet(r);
+    el.onkeydown = ev => { if (ev.key === 'Enter' || ev.key === ' '){ ev.preventDefault(); openSheet(r); } };
+
+    let lead;
+    if (!up.length){
+      lead = '<div class="ended han">本服務日班次已完</div>';
+    } else {
+      const m = Math.floor(up[0].rem / 60), s = up[0].rem % 60;
+      let cls = '', label;
+      const secs = '<span class="s"> ' + String(s).padStart(2,'0') + ' 秒</span>';
+      if (up[0].rem <= 60){ cls = 'imminent'; label = '即將開出'; }
+      else if (m < 3){ cls = 'now'; label = m + ' 分' + secs; }
+      else if (m < 8){ cls = 'soon'; label = m + ' 分' + secs; }
+      else if (m < 60){ label = m + ' 分'; }
+      else { label = Math.floor(m / 60) + ' 小時 ' + (m % 60) + ' 分'; }
+
+      const frac = Math.max(0, Math.min(1, up[0].rem / 1800));
+      const star0 = up[0].e.star ? '<sup>＊</sup>' : '';
+      const rest = up.slice(1).map(u =>
+        '<span>' + fmt(u.e.t) + (u.e.star ? '<sup>＊</sup>' : '') + '</span>'
+      ).join('');
+
+      lead =
+        '<div class="lead"><div class="big">' + fmt(up[0].e.t) + star0 + '</div>' +
+        '<div class="cd ' + cls + ' han">' + label + '</div></div>' +
+        '<div class="gauge"><i class="' + cls + '" style="transform:scaleX(' + frac.toFixed(4) + ')"></i></div>' +
+        (rest ? '<div class="then">' + rest + '</div>' : '');
     }
 
-    function timeStrToSeconds(str) {
-      const [h, m] = str.split(":").map(Number);
-      return h * 3600 + m * 60;
-    }
+    el.innerHTML =
+      '<div class="rail">' +
+        '<div class="code lat">' + (r.type === 'ferry' ? 'FERRY' : r.code) + '</div>' +
+        '<div class="mode lat ' + r.type + '">' + r.op + '</div>' +
+      '</div>' +
+      '<div class="body">' +
+        '<h2 class="dest han">' + r.dest[state.dir] + '</h2>' +
+        '<div class="desten lat">' + r.en[state.dir] + '</div>' +
+        '<div class="board han">由 <b>' + r.stop[state.dir] + '</b> 開出</div>' +
+        lead +
+      '</div>';
 
-    function setDirection(dir) {
-      state.direction = dir;
-      const isFrom = dir === "from_ma_wan";
-      
-      document.getElementById("tab-from-mawan").className = isFrom 
-        ? "py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 bg-blue-600 text-white shadow"
-        : "py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 text-slate-400 hover:text-white";
+    frag.appendChild(el);
+  });
 
-      document.getElementById("tab-to-mawan").className = !isFrom 
-        ? "py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 bg-blue-600 text-white shadow"
-        : "py-2 rounded-lg text-xs font-bold transition flex items-center justify-center space-x-1 text-slate-400 hover:text-white";
+  listEl.replaceChildren(frag);
+  if (state.openId) fillSheet(ROUTES.find(r => r.id === state.openId));
+}
 
-      render();
-    }
+/* ============================================================
+   Sheet
+   ============================================================ */
+function openSheet(r){
+  state.openId = r.id;
+  document.getElementById('scrim').classList.add('open');
+  fillSheet(r);
+}
+function closeSheet(){
+  state.openId = null;
+  document.getElementById('scrim').classList.remove('open');
+}
+function fillSheet(r){
+  if (!r) return;
+  const eff = effSeconds(), times = listFor(r);
+  document.getElementById('sheet-title').textContent = r.dest[state.dir];
+  document.getElementById('sheet-sub').textContent =
+    (r.type === 'ferry' ? '渡輪' : r.code) + '　由 ' + r.stop[state.dir] + ' 開出　' + DAYFULL[dayType()];
+  document.getElementById('sheet-foot').textContent = r.foot;
 
-    function toggleSimPanel() {
-      state.isSimPanelOpen = !state.isSimPanelOpen;
-      document.getElementById("sim-panel").classList.toggle("hidden", !state.isSimPanelOpen);
-      document.getElementById("sim-toggle-icon").textContent = state.isSimPanelOpen ? "▲ 收起設定" : "▼ 展開設定";
-    }
+  let marked = false;
+  document.getElementById('sheet-grid').innerHTML = times.map(e => {
+    const past = e.t * 60 < eff;
+    let cls = past ? 'cell past' : 'cell';
+    if (!past && !marked){ cls = 'cell next'; marked = true; }
+    return '<div class="' + cls + '">' + fmt(e.t) + (e.star ? '<sup>＊</sup>' : '') + '</div>';
+  }).join('');
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
-    function setSimLocation(type) {
-      const badge = document.getElementById("location-badge");
-      if (type === "ma_wan") {
-        setDirection("from_ma_wan");
-        badge.textContent = "📍 身處馬灣島內";
-        badge.className = "inline-block text-[11px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-emerald-300";
-      } else if (type === "city") {
-        setDirection("to_ma_wan");
-        badge.textContent = "📍 身處市區 (青衣/葵芳)";
-        badge.className = "inline-block text-[11px] px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-sky-300";
-      } else {
-        initGPS();
-      }
-    }
+/* ============================================================
+   Controls
+   ============================================================ */
+let dirSource = 'saved';   /* 'saved' | 'user' | 'geo' */
 
-    function setDayType(mode) {
-      state.dayTypeMode = mode;
-      ["auto", "weekday", "holiday"].forEach(m => {
-        const btn = document.getElementById(`btn-day-${m}`);
-        if (m === mode) {
-          btn.className = "py-1 px-2 rounded bg-indigo-600 text-white font-medium";
-        } else {
-          btn.className = "py-1 px-2 rounded bg-slate-800 text-slate-300";
-        }
-      });
-      render();
-    }
+function applyDir(d, source){
+  state.dir = d;
+  dirSource = source;
+  if (source === 'user') store.set('mw.dir', d);
+  document.getElementById('d-out').setAttribute('aria-pressed', d === 'out');
+  document.getElementById('d-in').setAttribute('aria-pressed', d === 'in');
+  render();
+}
+/* the two big buttons — an explicit choice, and it sticks */
+function setDir(d){ applyDir(d, 'user'); }
+function setFilter(f){
+  state.filter = f; store.set('mw.filter', f);
+  ['all','bus','ferry'].forEach(x =>
+    document.getElementById('f-' + x).setAttribute('aria-pressed', x === f));
+  render();
+}
+function setDayMode(m){
+  state.dayMode = m;
+  ['auto','weekday','saturday','holiday'].forEach(x =>
+    document.getElementById('dt-' + x).setAttribute('aria-pressed', x === m));
+  render();
+}
+function resetTime(){
+  state.simMin = null;
+  document.getElementById('simval').textContent = '跟隨系統';
+  render();
+}
+document.getElementById('slider').addEventListener('input', e => {
+  state.simMin = parseInt(e.target.value, 10);
+  document.getElementById('simval').textContent =
+    String(Math.floor(state.simMin / 60)).padStart(2,'0') + ':' +
+    String(state.simMin % 60).padStart(2,'0');
+  render();
+});
 
-    function filterType(type) {
-      state.filter = type;
-      ["all", "bus", "ferry"].forEach(t => {
-        const btn = document.getElementById(`filter-${t}`);
-        if (t === type) {
-          btn.className = "px-3 py-1 rounded-full bg-slate-700 text-white font-medium border border-slate-600 shrink-0";
-        } else {
-          btn.className = "px-3 py-1 rounded-full bg-slate-900 text-slate-400 hover:text-white border border-slate-800 shrink-0";
-        }
-      });
-      render();
-    }
+const MW = { lat:22.3530, lng:114.0605 };
+function kmFromMaWan(p){
+  const dy = (p.coords.latitude  - MW.lat) * 111;
+  const dx = (p.coords.longitude - MW.lng) * 102.9;
+  return Math.sqrt(dx*dx + dy*dy);
+}
 
-    function resetToRealTime() {
-      state.simulatedMinutes = null;
-      document.getElementById("sim-time-val").textContent = "跟隨系統";
-      render();
-    }
+/* One quiet attempt when the page opens. It never nags: any failure is
+   swallowed, and it yields to a direction you picked yourself. */
+function autoLocate(){
+  if (!('geolocation' in navigator)) return;
+  const go = () => navigator.geolocation.getCurrentPosition(
+    p => { if (dirSource !== 'user') applyDir(kmFromMaWan(p) <= 1.6 ? 'out' : 'in', 'geo'); },
+    () => {},
+    { timeout:6000, maximumAge:300000 }
+  );
+  if (navigator.permissions && navigator.permissions.query){
+    navigator.permissions.query({ name:'geolocation' })
+      .then(r => { if (r.state !== 'denied') go(); })
+      .catch(go);
+  } else { go(); }
+}
 
-    function getUpcomingTimes(scheduleList, limit) {
-      const now = getNowDate();
-      const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+/* The Settings button — explicit, so it reports what happened. */
+function locate(){
+  const msg = document.getElementById('gpsmsg');
+  if (!('geolocation' in navigator)){ msg.textContent = '此裝置不支援定位。'; return; }
+  msg.textContent = '定位中…';
+  navigator.geolocation.getCurrentPosition(p => {
+    const km = kmFromMaWan(p);
+    if (km <= 1.6){ applyDir('out','user'); msg.textContent = '在馬灣島內 — 已切換至出島。'; }
+    else { applyDir('in','user'); msg.textContent = '距馬灣約 ' + km.toFixed(1) + ' 公里 — 已切換至入島。'; }
+  }, () => { msg.textContent = '無法取得定位，請用上方的出島／入島手動切換。'; },
+     { timeout:8000, maximumAge:60000 });
+}
 
-      const upcoming = [];
-      for (const timeStr of scheduleList) {
-        const busSec = timeStrToSeconds(timeStr);
-        if (busSec >= currentSeconds) {
-          upcoming.push({
-            time: timeStr,
-            remainingSec: busSec - currentSeconds
-          });
-          if (upcoming.length === limit) break;
-        }
-      }
-      return upcoming;
-    }
+applyDir(state.dir, 'saved');
+setFilter(state.filter);
+setInterval(render, 1000);
+render();
+autoLocate();
+</script>
 
-    function formatRemaining(seconds) {
-      if (seconds <= 30) return `<span class="urgent-flash text-rose-400 font-extrabold">即將開出</span>`;
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      
-      let color = "text-slate-300";
-      if (mins < 5) color = "text-rose-400 font-bold";
-      else if (mins < 10) color = "text-amber-400 font-semibold";
-
-      return `<span class="${color}">${mins}分 <span class="text-[11px] opacity-75">${String(secs).padStart(2,'0')}秒</span></span>`;
-    }
-
-    function render() {
-      const now = getNowDate();
-      const dayType = getCurrentDayType();
-
-      document.getElementById("current-clock-display").textContent = 
-        `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-      
-      document.getElementById("day-badge").textContent = dayType === "holiday" ? "星期日／假期" : "平日時間表";
-
-      const container = document.getElementById("routes-container");
-      container.innerHTML = "";
-
-      Object.values(TIMETABLES).forEach(route => {
-        if (state.filter !== "all" && route.type !== state.filter) return;
-
-        const scheduleList = route[dayType][state.direction] || [];
-        const upcoming = getUpcomingTimes(scheduleList, route.limit);
-
-        const card = document.createElement("div");
-        card.className = "bg-slate-900 border border-slate-800 hover:border-slate-700 transition rounded-2xl p-4 shadow-sm cursor-pointer";
-        card.onclick = () => openModal(route, scheduleList);
-
-        let rowsHtml = "";
-        if (upcoming.length === 0) {
-          rowsHtml = `<div class="p-3 bg-slate-950/60 rounded-xl text-center text-xs text-slate-500 font-medium">本日尾班車已過</div>`;
-        } else {
-          rowsHtml = upcoming.map((u, idx) => `
-            <div class="flex items-center justify-between p-2.5 rounded-xl ${idx === 0 ? 'bg-slate-800/90 border border-slate-700/60' : 'bg-slate-950/40'}">
-              <div class="flex items-center space-x-2">
-                <span class="text-[10px] px-1.5 py-0.5 rounded ${idx === 0 ? 'bg-blue-600 text-white font-bold' : 'bg-slate-800 text-slate-400'}">
-                  ${idx === 0 ? '下班' : `+${idx+1}班`}
-                </span>
-                <span class="text-base font-mono font-bold text-white">${u.time}</span>
-              </div>
-              <div class="text-xs font-mono">${formatRemaining(u.remainingSec)}</div>
-            </div>
-          `).join("");
-        }
-
-        card.innerHTML = `
-          <div class="flex items-center justify-between mb-2.5">
-            <div class="flex items-center space-x-1.5">
-              <span class="text-sm">${route.type === 'ferry' ? '⛴️' : '🚌'}</span>
-              <h2 class="font-bold text-sm text-slate-100">${route.name}</h2>
-            </div>
-            <span class="text-[10px] text-slate-400 hover:text-indigo-400 flex items-center">
-              全日表 ➔
-            </span>
-          </div>
-          <div class="space-y-1.5">${rowsHtml}</div>
-        `;
-
-        container.appendChild(card);
-      });
-    }
-
-    function openModal(route, fullList) {
-      const modal = document.getElementById("timetable-modal");
-      document.getElementById("modal-title").textContent = route.name;
-      document.getElementById("modal-subtitle").textContent = 
-        `${state.direction === 'from_ma_wan' ? '馬灣出發' : '市區出發'} • ${getCurrentDayType() === 'holiday' ? '假日' : '平日'}全日班次`;
-
-      const now = getNowDate();
-      const currentSec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-
-      const grid = document.getElementById("modal-grid");
-      grid.innerHTML = fullList.map(t => {
-        const isPast = timeStrToSeconds(t) < currentSec;
-        return `
-          <div class="py-2 rounded-lg text-xs font-medium border ${isPast ? 'bg-slate-950 text-slate-600 border-slate-900' : 'bg-slate-800 text-indigo-200 border-slate-700 font-bold'}">
-            ${t}
-          </div>
-        `;
-      }).join("");
-
-      modal.classList.remove("hidden");
-    }
-
-    function closeModal() {
-      document.getElementById("timetable-modal").classList.add("hidden");
-    }
-
-    function initGPS() {
-      const badge = document.getElementById("location-badge");
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-          (pos) => {
-            const dLat = (pos.coords.latitude - MA_WAN_LAT) * 111;
-            const dLon = (pos.coords.longitude - MA_WAN_LNG) * 102;
-            const distKm = Math.sqrt(dLat * dLat + dLon * dLon);
-
-            if (distKm <= 1.8) {
-              setDirection("from_ma_wan");
-              badge.textContent = "📍 GPS: 馬灣島內";
-              badge.className = "inline-block text-[11px] px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-800 text-emerald-300";
-            } else {
-              setDirection("to_ma_wan");
-              badge.textContent = `📍 GPS: 市區 (${distKm.toFixed(1)}km)`;
-              badge.className = "inline-block text-[11px] px-2 py-0.5 rounded-full bg-sky-950 border border-sky-800 text-sky-300";
-            }
-          },
-          () => {
-            badge.textContent = "📍 預設: 出馬灣";
-          },
-          { timeout: 4000 }
-        );
-      }
-    }
-
-    document.getElementById("sim-time-slider").addEventListener("input", (e) => {
-      state.simulatedMinutes = parseInt(e.target.value, 10);
-      const h = String(Math.floor(state.simulatedMinutes / 60)).padStart(2, '0');
-      const m = String(state.simulatedMinutes % 60).padStart(2, '0');
-      document.getElementById("sim-time-val").textContent = `${h}:${m}`;
-      render();
-    });
-
-    setInterval(render, 1000);
-    initGPS();
-    render();
-  </script>
 </body>
 </html>
