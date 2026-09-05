@@ -10,7 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-<meta name="theme-color" content="#E5DFD4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#191713" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -23,19 +23,19 @@
 
 <style>
   :root{
-    --paper:#E5DFD4;
-    --surface:#EFEAE1;
-    --sunk:#DBD4C7;
-    --ink:#242019;
-    --ink2:#4C443A;
-    --ink3:#8C8273;
-    --rule:#CBC2B2;
-    --rule-soft:#D8D0C1;
-    --bengara:#9E4527;
-    --ochre:#9E7A33;
-    --moss:#5C6A4C;
-    --ai:#3C5566;
-    --focus:#9E4527;
+    --paper:#FFFFFF;      /* page ground — white */
+    --surface:#FAF7F1;    /* sheets sit a touch warmer than the page */
+    --sunk:#F3EFE7;
+    --ink:#231E17;        /* sumi — warm black, never neutral grey */
+    --ink2:#4E453A;
+    --ink3:#867C6D;
+    --rule:#DBD2C2;       /* hairlines stay clay, not grey */
+    --rule-soft:#EBE5DA;
+    --bengara:#9A4324;    /* 弁柄 — imminent */
+    --ochre:#8A6A28;      /* 黄土 — soon */
+    --moss:#55634A;       /* 苔 — comfortable */
+    --ai:#3A5162;         /* 藍鼠 — ferry */
+    --focus:#9A4324;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -823,13 +823,9 @@ autoLocate();
 </script>
 
 <script>
-/* Service worker: enables install-to-home-screen and offline use.
-   Only runs on a secure origin, and never blocks the page if it fails. */
 if ('serviceWorker' in navigator &&
     (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
 }
 </script>
 
