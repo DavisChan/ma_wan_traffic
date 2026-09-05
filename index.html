@@ -10,8 +10,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#191713" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#FFFFFF">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -308,6 +307,17 @@
 <body>
 
 
+<script>
+/* Runs before the page paints: restores a forced theme, if one was chosen. */
+(function(){
+  try {
+    var t = localStorage.getItem('mw.theme') || 'light';   /* light by default,
+       whatever the phone's system setting says */
+    if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+  } catch(e){}
+})();
+</script>
+
 <div class="wrap">
 
   <div class="mast">
@@ -357,6 +367,14 @@
       <div class="field">
         <label>模擬時間　<b id="simval">跟隨系統</b>　<button class="linkbtn" onclick="resetTime()">重設</button></label>
         <input type="range" id="slider" min="0" max="1439" step="1" value="0" aria-label="模擬時間">
+      </div>
+      <div class="field">
+        <label>外觀</label>
+        <div class="segs">
+          <button class="seg han" id="th-light" aria-pressed="true"  onclick="setTheme('light')">白底</button>
+          <button class="seg han" id="th-dark"  aria-pressed="false" onclick="setTheme('dark')">深色</button>
+          <button class="seg han" id="th-auto"  aria-pressed="false" onclick="setTheme('auto')">跟隨系統</button>
+        </div>
       </div>
       <div class="field">
         <label>時間表</label>
@@ -740,6 +758,38 @@ function fillSheet(r){
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
 /* ============================================================
+   Appearance
+   ============================================================ */
+function effectiveDark(){
+  const stamp = document.documentElement.getAttribute('data-theme');
+  if (stamp) return stamp === 'dark';
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+function syncThemeColor(){
+  let m = document.querySelector('meta[name="theme-color"][data-dyn]');
+  if (!m){
+    document.querySelectorAll('meta[name="theme-color"]').forEach(n => n.remove());
+    m = document.createElement('meta');
+    m.setAttribute('name','theme-color');
+    m.setAttribute('data-dyn','');
+    document.head.appendChild(m);
+  }
+  m.setAttribute('content', effectiveDark() ? '#191713' : '#FFFFFF');
+}
+function setTheme(t){
+  if (t === 'auto') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', t);
+  store.set('mw.theme', t);
+  ['auto','light','dark'].forEach(x =>
+    document.getElementById('th-' + x).setAttribute('aria-pressed', x === t));
+  syncThemeColor();
+}
+if (window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)')
+    .addEventListener('change', syncThemeColor);
+}
+
+/* ============================================================
    Controls
    ============================================================ */
 let dirSource = 'saved';   /* 'saved' | 'user' | 'geo' */
@@ -815,6 +865,7 @@ function locate(){
      { timeout:8000, maximumAge:60000 });
 }
 
+setTheme(store.get('mw.theme', 'light'));
 applyDir(state.dir, 'saved');
 setFilter(state.filter);
 setInterval(render, 1000);

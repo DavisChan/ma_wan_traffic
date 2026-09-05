@@ -1,6 +1,6 @@
 /* 馬灣時刻 — network-first so timetable edits land immediately,
    cache fallback so the app still opens in the tunnel or with no signal. */
-const CACHE = 'mawan-v1';
+const CACHE = 'mawan-v2';
 const SHELL = [
   './', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './icon-maskable-512.png',
